@@ -1,0 +1,2 @@
+grid_id,numeric_id,row,col,center_lon,center_lat,region,rh100_x10_mean,rh100_x10_median,rh100_x10_stdDev,rh100_x10_min,rh100_x10_max,rh100_x10_count,rh100_x10_p10,rh100_x10_p25,rh100_x10_p75,rh100_x10_p90
+

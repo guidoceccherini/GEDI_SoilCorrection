@@ -632,10 +632,10 @@ ggplot(data_diff_by_forest, aes(x = kurtosis_diff, fill = forest_mgmt_label)) +
 # ============================================================================
 
 # Save full processed data
-write.csv(combined_csv, "Data/EU_Grid25km_triple_grouped.csv", row.names = FALSE)
-
-# Save differences
-write.csv(data_diff_by_forest, "Data/EU_Grid25km_differences_by_forest.csv", row.names = FALSE)
+# write.csv(combined_csv, "Data/EU_Grid25km_triple_grouped.csv", row.names = FALSE)
+# 
+# # Save differences
+# write.csv(data_diff_by_forest, "Data/EU_Grid25km_differences_by_forest.csv", row.names = FALSE)
 
 # Save summaries
 write.csv(summary_by_treecover, "Data/EU_Grid25km_summary_treecover.csv", row.names = FALSE)

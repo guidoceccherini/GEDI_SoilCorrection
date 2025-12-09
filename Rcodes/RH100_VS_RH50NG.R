@@ -1,6 +1,6 @@
 library(sf)
 library(dplyr)
-
+library(ggplot2)
 # Define your region names
 regions <- c( 'West3', 'West4', 
               'Central1', 'Central2', 
@@ -69,6 +69,32 @@ combined_csv <- lapply(csv_files, function(f) {
 combined_csv <- tibble(combined_csv)
 
 
+# Read and merge all CSV files
+csv_files <- paste0("Data/EU_Grid25km_RH50_Mirror_", regions, ".csv")
+combined_csvM <- lapply(csv_files, function(f) {
+  df <- read.csv(f, stringsAsFactors = FALSE, colClasses = c(
+    grid_id = "character",
+    region = "character"
+  ))
+  # Ensure character columns even if empty
+  if(nrow(df) == 0) return(NULL)
+  df$grid_id <- as.character(df$grid_id)
+  df$region <- as.character(df$region)
+  return(df)
+}) %>%
+  Filter(Negate(is.null), .) %>%
+  bind_rows() %>%
+  filter(rh50_x10_count > 1000) %>%
+  mutate(
+    rh50_medianM = rh50_x10_median / 10,
+    rh_non_ground50_medianM = rh_non_ground50_x10_median / 10,
+    deltaM = rh_non_ground50_medianM - rh50_medianM
+  ) %>%
+  select(grid_id, numeric_id, region, rh50_medianM, rh_non_ground50_medianM, deltaM)
+
+
+combined_csvM <- tibble(combined_csvM)
+
 # same for rh100
 # csv1 <- read.csv("Data/EU_Grid25km_RH100_Central1.csv")
 csv_files100 <- paste0("Data/EU_Grid25km_RH100_", regions, ".csv")
@@ -107,6 +133,7 @@ combined_shp <- lapply(shp_files, st_read) %>%
 # Merge shapefile with CSV data
 merged_data <- combined_shp %>%##st_drop_geometry() %>%
   left_join(combined_csv, by = c("numeric_id", "region"))%>%
+  left_join(combined_csvM, by = c("numeric_id", "region"))%>%
   left_join(combined_csv100, by = c("numeric_id", "region"))
   
 # Create map with diverging palette
@@ -136,6 +163,22 @@ ggplot(merged_data) +
   ) +
   theme_minimal() +
   labs(title = "RH100 Median") +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "bottom",
+    legend.key.width = unit(2, "cm"),
+    legend.key.height = unit(0.5, "cm")
+  ) +
+  guides(fill = guide_colorbar(title.position = "top", title.hjust = 0.5))
+
+ggplot(merged_data) +
+  geom_sf(aes(fill = rh_non_ground50_median - rh_non_ground50_medianM), color = NA) +
+  scale_fill_viridis_c(
+    option = "viridis",  # or "magma", "plasma", "inferno", "cividis"
+    name = "Delta Gauss Mirroring (m)"
+  ) +
+  theme_minimal() +
+  labs(title = "Delta Gauss Mirroring (m) RH50 Median") +
   theme(
     plot.title = element_text(hjust = 0.5),
     legend.position = "bottom",
@@ -303,6 +346,22 @@ ggplot(clean_data, aes(x = rh100_median, y = rh50_median)) +
   facet_wrap(~rh100_bin, scales = "free") +
   labs(title = "Correlation by RH100 Height Classes - RAW RH50") +
   theme_bw()
+
+
+
+
+
+
+ggplot(clean_data, aes(x = rh100_median, y = rh_non_ground50_median - rh_non_ground50_medianM)) +
+  geom_point(alpha = 0.3, size = 1) +
+  geom_smooth(method = "lm", color = "red") +
+  stat_cor(method = "pearson", label.x.npc = 0.1, label.y.npc = 0.9) +
+  labs(x = "RH100 (Canopy Height)", 
+       y = "RH50 Non-Ground Median Difference (Gaussian - Mirror)",
+       title = "GEDI Metrics Correlation") +
+  theme_minimal()
+
+
 
 # 
 # # ADD HEIGHT!!!
